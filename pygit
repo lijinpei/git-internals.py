@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+import sys
+from git.command_line import *
+import importlib
+
+long_arg_handlers = {
+        'version': cmd_version_handler,
+        'help': cmd_help_handler,
+}
+short_arg_handlers = {
+        'v': cmd_version_handler,
+        'h': cmd_help_handler,
+}
+
+args = sys.argv
+argc = len(args)
+next_arg = 1
+command = None
+
+while next_arg < argc:
+    arg = args[next_arg]
+    next_arg += 1
+    if arg.startswith('--'):
+        long_arg = arg[2:]
+        next_arg = long_arg_handlers.get(long_arg, error_cmd_handler)(next_arg, args)
+    elif arg.startswith('-'):
+        short_arg = arg[1:]
+        next_arg = short_arg_handlers.get(short_arg, error_cmd_handler)(next_arg, args)
+    else:
+        command = arg
+        break
+if command == None:
+    print_help()
+    sys.exit(0)
+
+try:
+    command_module = importlib.import_module('git.git_core.' + command)
+except ModuleNotFoundError:
+    print("pygit: " + command + " is not a pygit command. See 'pygit --help'")
+    sys.exit(1)
+
+command_module.run(command_line_context, args[next_arg - 1:])
